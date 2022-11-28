@@ -1,0 +1,331 @@
+---
+title: "MATH 189 Homework 2 Code"
+author: "Ayaan Saifi & Antony Sikorski"
+date: "4/20/2021"
+output: html_document
+---
+
+#--------------------Setup-------------------- 
+
+#Installing ggplot2
+install.packages('ggplot2',repos="http://cran.rstudio.com/")
+library(ggplot2)
+
+#Data setup
+data = read.table("videodata.txt", header=TRUE)
+data2 = read.table("videoMultiple.txt", header=TRUE)
+data[data == 99] <- NA
+head(data)
+
+#Data cleaning for Question 4
+q4data_like = na.omit(subset(data2, select = c(relax, coord, challenge, master, bored, graphic)))
+q4data_dislike = na.omit(subset(data2, select = c(time, frust, lonely, rules, cost, boring, friends, point)))
+
+#--------------------Problem 1--------------------
+
+#Producing a bootstrap population from our sample
+set.seed(1)
+shuffle.ind = sample(1:nrow(data))
+boot.population <- rep(data$time[shuffle.ind], length.out = 314)
+boot.population = boot.population > 0
+
+#Bootstrap with B = 400
+set.seed(2)
+B = 400
+boot.sample <- array(dim = c(B, 91))
+for (i in 1:B) {
+  boot.sample[i, ] <- sample(boot.population, size = 91, replace = FALSE)
+}
+
+#Compute the means of all 400 bootstrap estimates
+boot.means <- apply(X = boot.sample, MARGIN = 1, FUN = mean)
+
+#Plotting a histogram to illustrate normality
+hist(boot.means, breaks = 20, probability = TRUE, density = 20, col = 3, border = 3, main = "Distribution of Bootstrap Means for Proportion of Students", 
+xlab = "Bootstrap Means (proportion)", ylab = "Density")
+lines(density(boot.means, adjust = 2), col = 2)
+
+#Using Q-Q Plot to prove normality
+par(pty = 's')
+qqnorm(boot.means)
+qqline(boot.means)
+
+#Standardization for Kolmogorov-Smirnov test
+standardized2 = (boot.means - mean(boot.means))/(sd(boot.means))
+standardized2 = unique(standardized2)
+
+#Using Kolmogorov-Smirnov test to prove normality
+ks.test(standardized2, pnorm)
+
+#Point Estimate
+mean.boot = mean(boot.means)
+mean.boot
+
+#Interval Estimate (Method 1)
+s = sd(boot.means)
+int.boot1 = c(mean.boot - 1.96*s, mean.boot + 1.96*s)
+int.boot1
+
+#Interval Estimate (Method 2)
+int.boot2 = c(quantile(boot.means, 0.025), quantile(boot.means, 0.975))
+int.boot2
+
+#--------------------Problem 2--------------------
+
+#Separating Frequencies
+data_daily = data[which(data['freq'] == 1),]
+data_weekly = data[which(data['freq'] == 2),]
+data_monthly = data[which(data['freq'] == 3),]
+data_semesterly = data[which(data['freq'] == 4),]
+
+
+#Creating a data frame for Time vs. Frequency
+q2data = data.frame(type=c( 
+rep("Daily", nrow(data_daily)), 
+rep("Weekly", nrow(data_weekly)), 
+rep("Monthly", nrow(data_monthly)), 
+rep("Semesterly", nrow(data_semesterly))), 
+                 value=c(data_daily$time, data_weekly$time, 
+                 data_monthly$time, data_semesterly$time))
+
+#Re-ordering the data frame to prepare for plotting
+q2data$type <- factor(q2data$type, c('Semesterly', 'Monthly', 'Weekly', 'Daily'))
+
+#Combined boxplot for Frequency of Play vs. Hours Played in the Past Week
+combined_box = ggplot(q2data, aes(x=value, fill=type)) + geom_boxplot() +
+  ggtitle("Frequency of Play vs. Hours Played in the Past Week") + labs(y=" ", x="Hours Played") +
+  scale_fill_manual(values=c("green", "yellow", "orange", "red"))
+combined_box  
+
+#--------------------Problem 3--------------------
+
+#Producing a bootstrap population from our sample
+set.seed(3)
+shuffle.ind2 = sample(1:nrow(data))
+boot.population2 <- rep(data$time[shuffle.ind2], length.out = 314)
+
+#Bootstrap with B2 = 400
+set.seed(4)
+B2 = 400
+boot.sample2 <- array(dim = c(B2, 91))
+for (i in 1:B2) {
+  boot.sample2[i, ] <- sample(boot.population2, size = 91, replace = FALSE)
+}
+
+#Compute the means of all 400 bootstrap estimates
+boot.means2 <- apply(X = boot.sample2, MARGIN = 1, FUN = mean)
+
+#Plotting a histogram to illustrate normality
+hist(boot.means2, breaks = 20, probability = TRUE, density = 20, col = 3, border = 3, main = "Distribution of Bootstrap Means for Average Time Played", xlab = "Bootstrap Means (hours)", ylab = "Density")
+lines(density(boot.means2, adjust = 2), col = 2)
+
+#Using Q-Q Plot to prove normality
+par(pty = 's')
+qqnorm(boot.means2)
+qqline(boot.means2)
+
+#Standardization for Kolmogorov-Smirnov test
+standardized3 = (boot.means2 - mean(boot.means2))/(sd(boot.means2))
+standardized3 = unique(standardized3)
+
+#Using Kolmogorov-Smirnov test to prove normality
+ks.test(standardized3, pnorm)
+
+#Point Estimate
+mean.boot2 = mean(boot.means2)
+mean.boot2
+
+#Interval Estimate (Method 1)
+s2 = sd(boot.means2)
+int.boot12 = c(mean.boot2 - 1.96*s2, mean.boot2 + 1.96*s2)
+int.boot12
+
+#Interval Estimate (Method 2)
+int.boot22 = c(quantile(boot.means2, 0.025), quantile(boot.means2, 0.975))
+int.boot22
+
+#--------------------Problem 4--------------------
+
+#Separating based on level of preference for video games
+like = data[which(data$like == 2 | data$like == 3), ]
+dislike = data[which(data$like == 4 | data$like == 5), ]
+
+#Finding the proportion of students who like/dislike video games
+like_prop = nrow(like)/(nrow(data)-1)
+dislike_prop = nrow(dislike)/(nrow(data)-1)
+like_prop
+dislike_prop
+   
+#Bar plot of reasons why students like playing video games
+sumdata=data.frame(Frequency=apply(q4data_like,2,sum))
+sumdata$Reason=rownames(sumdata)
+ggplot(data=sumdata, aes(reorder(Reason,-Frequency),Frequency, fill=Reason)) +
+geom_bar(colour="black", stat="identity") + 
+labs(title = 'Why Students Like Video Games',
+    x = 'Reason') 
+
+#Bar plot of reasons why students dislike playing video games
+sumdata2=data.frame(Frequency=apply(q4data_dislike,2,sum))
+sumdata2$Reason=rownames(sumdata2)
+ggplot(data=sumdata2, aes(reorder(Reason,-Frequency),Frequency, fill=Reason)) +
+geom_bar(colour="black", stat="identity") + 
+labs(title = 'Why Students Dislike Video Games',
+    x = 'Reason') 
+    
+#--------------------Problem 5--------------------
+
+#Data cleaning and turning like/dislike of video games into a binary variable
+q5adata = data[data$like != 1, ]
+q5adata = q5adata[-c(49),]
+q5adata$like[q5adata$like == 2] <- 1
+q5adata$like[q5adata$like == 3] <- 1
+q5adata$like[q5adata$like == 4] <- 0
+q5adata$like[q5adata$like == 5] <- 0
+
+#Proportion test of attitude towards video games vs. gender
+tb1 = table(q5adata$sex,q5adata$like)
+colnames(tb1) <- c('Dislike', 'Like')
+rownames(tb1) <- c('Female', 'Male')
+tb1
+prop.test(tb1, correct=FALSE)
+
+#Graphing a stacked bar plot for attitude towards video games vs. gender
+tb1.prop <- prop.table(tb1, 1)
+tb1.df <- as.data.frame(tb1.prop)
+names(tb1.df) <- c("Sex", "AttitudeTowardsVideoGames", "Proportion")
+ggplot(tb1.df, aes(x=Sex, y=Proportion, fill=AttitudeTowardsVideoGames)) + geom_col()+  ggtitle("Attitude Towards Video Games Based on Sex")
+
+#Data cleaning and turning like/dislike of video games & employment status into binary variables
+q5bdata = data[data$like != 1, ]
+q5bdata = q5bdata[-c(32,44,45,49),]
+q5bdata$like[q5bdata$like == 2] <- 1
+q5bdata$like[q5bdata$like == 3] <- 1
+q5bdata$like[q5bdata$like == 4] <- 0
+q5bdata$like[q5bdata$like == 5] <- 0
+q5bdata$work[q5bdata$work == 0] <- 0
+q5bdata$work[q5bdata$work > 0] <- 1
+
+#Proportion test of attitude towards video games vs. employment status
+tb2 = table(q5bdata$work,q5bdata$like)
+colnames(tb2) <- c('Dislike', 'Like')
+rownames(tb2) <- c("Doesn't Work", 'Works')
+tb2
+prop.test(tb2, correct=FALSE)
+
+#Graphing a stacked bar plot for attitude towards video games vs. employment status
+tb2.prop <- prop.table(tb2, 1)
+tb2.df <- as.data.frame(tb2.prop)
+names(tb2.df) <- c("EmploymentStatus", "AttitudeTowardsVideoGames", "Proportion")
+ggplot(tb2.df, aes(x=EmploymentStatus, y=Proportion, fill=AttitudeTowardsVideoGames)) + geom_col() + ggtitle("Attitude Towards Video Games Based on Employment Status")
+
+#Proportion test of attitude towards video games vs. ownership of a computer
+tb3 = table(q5adata$own,q5adata$like)
+colnames(tb3) <- c('Dislike', 'Like')
+rownames(tb3) <- c("Doesn't Own a Computer", 'Owns a Computer')
+tb3
+prop.test(tb3, correct=FALSE)
+
+#Graphing a stacked bar plot for attitude towards video games vs. ownership of a computer
+tb3.prop <- prop.table(tb3, 1)
+tb3.df <- as.data.frame(tb3.prop)
+names(tb3.df) <- c("ComputerOwnership", "AttitudeTowardsVideoGames", "Proportion")
+ggplot(tb3.df, aes(x=ComputerOwnership, y=Proportion, fill=AttitudeTowardsVideoGames)) + geom_col() + ggtitle("Attitude Towards Video Games Based on Ownership of a PC")
+
+#--------------------Problem 6--------------------
+
+#Grading proportions (before nonrespondents assumption)
+q6table1 = table(data$grade)
+q6df1 = as.data.frame(prop.table(q6table1))
+rownames(q6df1) <- c('C', 'B', 'A')
+q6df1
+
+#Grading proportions (after nonrespondents assumption)
+q6table2 = table(data$grade)/95
+q6df2 = as.data.frame(q6table2)
+rownames(q6df2) <- c('C', 'B', 'A')
+q6df2
+D_F_proportion = 4/95
+D_F_proportion
+
+# Theoretical Grade Distribution pie chart 
+expected <- c(20, 30, 40, 10)
+lbls <- c("A", "B", "C", "D/F")
+pct <- round(expected/sum(expected)*100)
+lbls <- paste(lbls, pct) 
+lbls <- paste(lbls,"%",sep="") 
+pie(expected,labels = lbls, col=rainbow(length(lbls)),
+   main="Target Grade Distribution")
+
+# Observed Grade Distribution pie chart (without nonrespondents factored in)
+observed <- c(31, 52, 8, 0)
+lbls <- c("A", "B", "C", "D/F")
+pct <- round(observed/sum(observed)*100)
+lbls <- paste(lbls, pct) 
+lbls <- paste(lbls,"%",sep="") 
+pie(observed,labels = lbls, col=rainbow(length(lbls)),
+   main="Expected Grade Distribution (Without Nonrespondents)")
+
+# Observed Grade Distribution pie chart (with nonrespondents as D/F)
+observedwith <- c(31, 52, 8, 4)
+lbls <- c("A", "B", "C", "D/F")
+pct <- round(observedwith/sum(observedwith)*100)
+lbls <- paste(lbls, pct) 
+lbls <- paste(lbls,"%",sep="") 
+pie(observedwith,labels = lbls, col=rainbow(length(lbls)),
+   main="Expected Grade Distribution (With Nonrespondents as D/F)")
+
+#Chi-squared test for goodness of fit (without nonrespondents)
+chisq.test(c(31, 52, 8, 0), p = c(0.2, 0.3, 0.4, 0.1))
+#extremely low p-value means that this is not a good theoretical fit for our
+#observed distribution
+
+#Chi-squared test for goodness of fit (with nonrespondents)
+chisq.test(c(31, 52, 8, 4), p = c(0.2, 0.3, 0.4, 0.1))
+#extremely low p-value means that this is not a good theoretical fit for our
+#observed distribution
+
+
+
+#----Advanced Analysis (Do those who like/play video games expect higher grades?)----
+
+#Turning time played into a binary variable
+advdata = data
+advdata$time[advdata$time == 0] <- 0
+advdata$time[advdata$time > 0] <- 1
+
+#Turning attitude towards video games into a binary variable
+advdata$like[advdata$like == 2] <- 1
+advdata$like[advdata$like == 3] <- 1
+advdata$like[advdata$like == 4] <- 0
+advdata$like[advdata$like == 5] <- 0
+
+#Constructing a proportion table for likes
+advtbl2 = table(advdata$grade,advdata$like)
+colnames(advtbl2) <- c("Dislike", "Like")
+rownames(advtbl2) <- c('A', 'B', 'C')
+advtbl2.prop <- prop.table(advtbl2, 1)
+advtbl2
+advtbl2.prop
+
+#Chi-squared test for likes (77%)
+chisq.test(c(7, 1, 38, 13, 25, 6), p = c(0.071, 0.023, 0.434, 0.134, 0.264, 0.074))
+
+#Constructing a proportion table for plays
+advtbl1 = table(advdata$grade,advdata$time)
+colnames(advtbl1) <- c("Didn't Play", 'Played')
+rownames(advtbl1) <- c('A', 'B', 'C')
+advtbl1.prop <- prop.table(advtbl1, 1)
+advtbl1
+advtbl1.prop
+
+#Chi-squared test for plays (38%)
+chisq.test(c(1,7,17,35,16,15), p = c(0.0334, 0.0545, 0.2172, 0.3543, 0.1294, 0.2112))
+
+#What kind of video games should the lab have?
+gametype = na.omit(subset(data2, select = c(action, adv, sim, sport, strategy)))
+sumgametype = data.frame(Frequency=apply(gametype,2,sum))
+sumgametype$Genre = rownames(sumgametype)
+ggplot(data=sumgametype, aes(reorder(Genre,-Frequency),Frequency, fill=Genre)) +
+geom_bar(colour="black", stat="identity") + 
+labs(title = "Students' Favorite Video Game Genres", x = 'Genre')
+
